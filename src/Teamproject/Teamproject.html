@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+<title>Team Project</title>
+
+<style>
+	.container {
+		display: flex;
+		flex-direction: row;
+		align-items: stretch;
+	}
+	.left {
+		flex: 2;
+		background: #5ad18f;
+		padding: 2px;
+		border-style: solid;
+		border-width: 2px;
+		border-color: black;
+	}
+	.center-left {
+		flex: 7;
+		background: #ffffff;
+		padding: 2px;
+		border-style: solid;
+		border-width: 2px;
+		border-color: black;
+	}
+	.center-right {
+		flex: 2;
+		background: #5ad18f;
+		padding: 2px;
+		border-style: solid;
+		border-width: 2px;
+		border-color: black;
+	}
+	.right {
+		flex: 2;
+		background: #ffffff;
+		padding: 2px;
+		border-style: solid;
+		border-width: 2px;
+		border-color: black;
+	}
+	.section {
+		margin-top: 10px;
+		border-top: solid 1px;
+		border-width: 2px;
+		border-color: black;
+	}
+	.sub-section {
+		margin-top: 10px;
+		border-top: solid 1px;
+		border-color: grey;
+	}
+	.center-align{
+		text-align: center;
+		margin-top: 1px;
+		margin-bottom: 1px;
+	}
+	.titletext{
+		text-shadow: -1px 0px aqua, 0px 1px aqua, 1px 0px aqua, 0px -1px aqua;
+		margin-top: 0px;
+		margin-bottom: 0px;
+	}
+	.noticetext{
+		font-size: 80%;
+		margin-top: 0px;
+		margin-bottom: 0px;
+	}
+</style>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+attribute vec4 vPosition;
+attribute vec3 vNormal;
+attribute vec4 vColor;
+attribute vec2 vTexCoord;
+
+varying vec4 fColor;
+varying vec2 fTexCoord;
+
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform vec4 lightPosition;
+uniform float shininess;
+uniform vec4 ambientProduct2, diffuseProduct2, specularProduct2;
+uniform vec4 lightPosition2;
+
+uniform vec4 cameraPosition;
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
+uniform mat4 cameraMatrix;
+uniform mat3 normalMatrix;
+uniform int LE1, LE2;
+
+void main()
+{
+	vec3 pos = (modelViewMatrix * vPosition).xyz;
+	vec4 NN = vec4(vNormal,0);
+	vec3 N = normalize( (modelViewMatrix*NN).xyz);
+	vec3 E = normalize( cameraPosition.xyz - pos );
+	
+	vec3 L = normalize( lightPosition.xyz - pos );
+    vec3 H = normalize( L + E );
+	vec4 ambient = ambientProduct;
+	float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd * diffuseProduct;
+	float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+	
+	vec3 L2 = normalize( lightPosition2.xyz - pos );
+    vec3 H2 = normalize( L2 + E );
+	vec4 ambient2 = ambientProduct2;
+	float Kd2 = max( dot(L2, N), 0.0 );
+    vec4  diffuse2 = Kd2 * diffuseProduct2;
+	float Ks2 = pow( max(dot(N, H2), 0.0), shininess );
+    vec4  specular2 = Ks2 * specularProduct2;
+	
+	vec4 lightColor1 = vColor;
+    vec4 lightColor2 = vColor;
+	
+	if( dot(L, N) < 0.0 ) {
+	specular = vec4(0.0, 0.0, 0.0, 1.0);
+    } 
+
+	gl_Position = projectionMatrix * cameraMatrix * modelViewMatrix * vPosition;
+	if(LE1 != 0) {
+		lightColor1 = vColor + ambient + diffuse + specular;
+    }
+	if(LE2 != 0) {
+		lightColor2 = vColor + ambient2 + diffuse2 + specular2;
+	}
+    fColor = (lightColor1 + lightColor2);
+	
+    fColor.a = 1.0;
+	fTexCoord = vTexCoord;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec4 fColor;
+varying vec2 fTexCoord;
+
+uniform sampler2D texture;
+
+void
+main()
+{
+    gl_FragColor = fColor * texture2D( texture, fTexCoord );
+}
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="Teamproject.js"></script>
+</head>
+
+<body>
+	<div class="container">
+	<div class="left">
+		<strong>Camera</strong><br>
+		<div class="center-align">
+			<p class="titletext">> Cartesian coordinate system <</p>
+			<input id="fix_enabled" type="checkbox">Fixed point of view enable</input>
+		</div>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;X
+		<input style="display:inline;" id="CPXslider" type="range" min="-1000" max="1000" step="1" value="0" />
+		<p style="display:inline;" id="CPXDATA"></p>
+		<br>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Y
+		<input style="display:inline;" id="CPYslider" type="range" min="-1000" max="1000" step="1" value="0" />
+		<p style="display:inline;" id="CPYDATA"></p>
+		<br>
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Z
+		<input style="display:inline;" id="CPZslider" type="range" min="-1000" max="1000" step="1" value="100" />
+		<p style="display:inline;" id="CPZDATA"></p>
+		<div class="sub-section"></div>
+		<div class="center-align">
+			<p class="titletext">> Spherical coordinate system <</p>
+		</div>
+		&nbsp;&nbsp;<button style="display:inline;" id= "CPTHButton">Theta</button>&nbsp;
+		<input style="display:inline;" id="CPTHslider" type="range" min="-18000" max="18000" step="1" value="0" />
+		<p style="display:inline;" id="CPTHDATA"></p>
+		<br>
+		&nbsp;&nbsp;<button style="display:inline;" id= "CPPHButton">&nbsp;&nbsp;Phi&nbsp;&nbsp;</button>&nbsp;
+		<input style="display:inline;" id="CPPHslider" type="range" min="1" max="17999" step="1" value="9000" />
+		<p style="display:inline;" id="CPPHDATA"></p>
+		<div class="sub-section"></div>
+		<div class="center-align">
+			<p class="titletext">> Zoom <</p>
+			<input style="display:inline;" id="CPZoomslider" type="range" min="-10000" max="10000" step="1" value="50" />
+			<p style="display:inline;" id="CPZOOMDATA"></p>
+		</div>
+		<div class="sub-section"></div>
+		<div class="center-align">
+			<p class="titletext">> first-person perspective <</p>
+			<input id="1st_enabled" type="checkbox">Enable</input>
+		</div>
+		<div class="section"></div>
+		<p style="font-size:90%; margin-top: 0px; margin-bottom: 0px;">
+			<div class="center-align"><p class="titletext">> Key Setting <</p></div>
+			<strong>mouse wheel</strong> : <br>Distance change between camera and object (location change)<br>
+			<strong>Ctrl+arrow</strong> : <br>Run in the direction of the arrow<br>
+			<strong>arrow</strong> : <br>Walk in the direction of the arrow<br>
+			<strong>Space</strong> : <br>Jump<br>
+			<strong>B</strong> : <br>Do Pull-Up<br>
+			<strong>R</strong> : <br>Quit Pull-Up
+		</p>
+		<div class="section"></div>
+	</div>
+	<div class="center-left">
+		<div class="center-align">
+			<canvas id="gl-canvas" width="1024" height="1024">
+				Oops ... your browser doesn't support the HTML5 canvas element
+			</canvas>
+		</div>
+	</div>
+	<div class="center-right">
+		<strong>Light</strong><br>
+		<div class="center-align">
+			&nbsp;&nbsp;Shiniess
+			<input style="display:inline;" id="SHIslider" type="range" min="0" max="200" step="1" value="20" />
+			<p style="display:inline;" id="SHIDATA"></p><br>
+			<br>
+			<select id="light-list">
+				<option value="0">Base Light</option>
+				<option value="1">Sub Light</option>
+			</select>
+			<input id="light-enabled" type="checkbox" checked>Enable</input>
+			<div class="sub-section"></div>
+		</div>
+		<div class="center-align">
+			<p class="titletext">> Position <</p>
+		</div>
+		&nbsp;&nbsp;X
+		<input style="display:inline;" id="LXslider" type="range" min="-100" max="100" step="1" value="100" />
+		<p style="display:inline;" id="LXDATA"></p>
+		<br>
+		&nbsp;&nbsp;Y
+		<input style="display:inline;" id="LYslider" type="range" min="-100" max="100" step="1" value="100" />
+		<p style="display:inline;" id="LYDATA"></p>
+		<br>
+		&nbsp;&nbsp;Z
+		<input style="display:inline;" id="LZslider" type="range" min="-100" max="100" step="1" value="100" />
+		<p style="display:inline;" id="LZDATA"></p>
+		<div class="sub-section"></div>
+		<div class="center-align">
+			<p class="titletext">> Ambient <</p>
+		</div>
+		&nbsp;&nbsp;R
+		<input style="display:inline;" id="ARslider" type="range" min="-100" max="100" step="1" value="20" />
+		<p style="display:inline;" id="ARDATA"></p>
+		<br>
+		&nbsp;&nbsp;G
+		<input style="display:inline;" id="AGslider" type="range" min="-100" max="100" step="1" value="20" />
+		<p style="display:inline;" id="AGDATA"></p>
+		<br>
+		&nbsp;&nbsp;B
+		<input style="display:inline;" id="ABslider" type="range" min="-100" max="100" step="1" value="20" />
+		<p style="display:inline;" id="ABDATA"></p>
+		<div class="sub-section"></div>
+		<div class="center-align">
+			<p class="titletext">> Diffuse <</p>
+		</div>
+		&nbsp;&nbsp;R
+		<input style="display:inline;" id="DRslider" type="range" min="-100" max="100" step="1" value="0" />
+		<p style="display:inline;" id="DRDATA"></p>
+		<br>
+		&nbsp;&nbsp;G
+		<input style="display:inline;" id="DGslider" type="range" min="-100" max="100" step="1" value="100" />
+		<p style="display:inline;" id="DGDATA"></p>
+		<br>
+		&nbsp;&nbsp;B
+		<input style="display:inline;" id="DBslider" type="range" min="-100" max="100" step="1" value="80" />
+		<p style="display:inline;" id="DBDATA"></p>
+		<div class="sub-section"></div>
+		<div class="center-align">
+			<p class="titletext">> Specular <</p>
+		</div>
+		&nbsp;&nbsp;R
+		<input style="display:inline;" id="SRslider" type="range" min="-100" max="100" step="1" value="100" />
+		<p style="display:inline;" id="SRDATA"></p>
+		<br>
+		&nbsp;&nbsp;G
+		<input style="display:inline;" id="SGslider" type="range" min="-100" max="100" step="1" value="80" />
+		<p style="display:inline;" id="SGDATA"></p>
+		<br>
+		&nbsp;&nbsp;B
+		<input style="display:inline;" id="SBslider" type="range" min="-100" max="100" step="1" value="00" />
+		<p style="display:inline;" id="SBDATA"></p>
+		<div class="section"></div>
+		<strong>Controls</strong><br>
+		<div class="center-align">
+			<button id= "StButton">Stop</button><br>
+			<button id= "OReButton">Object Reset</button><br>
+			<button id= "CReButton">Camera Reset</button><br>
+			<button id= "LReButton">Light Reset</button><br>
+			<button id= "ReButton">Reset</button>
+		</div>
+		<div class="section"></div>
+	</div>
+	</div>
+</body>
+</html>
